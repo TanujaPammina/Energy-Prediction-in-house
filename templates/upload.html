@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Upload Dataset • ML Energy Dashboard</title>
+
+<style>
+/* ---------- GLOBAL ---------- */
+body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: #f8fafc;
+    margin: 0;
+    padding: 0;
+}
+
+/* ---------- CONTAINER ---------- */
+.container {
+    max-width: 520px;
+    margin: 80px auto;
+    background: white;
+    padding: 35px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+    text-align: center;
+}
+
+/* ---------- HEADINGS ---------- */
+h1 {
+    margin-bottom: 8px;
+    font-size: 26px;
+}
+
+.subtitle {
+    color: #64748b;
+    font-size: 15px;
+    margin-bottom: 25px;
+}
+
+/* ---------- UPLOAD BOX ---------- */
+.upload-box {
+    border: 2px dashed #c7d2fe;
+    padding: 30px;
+    border-radius: 16px;
+    background: #eef2ff;
+    transition: 0.3s;
+}
+
+.upload-box:hover {
+    background: #e0e7ff;
+}
+
+/* ---------- FILE INPUT ---------- */
+input[type="file"] {
+    display: block;
+    margin: 15px auto;
+    font-size: 14px;
+}
+
+/* ---------- BUTTON ---------- */
+button {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    border: none;
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 10px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79,70,229,0.35);
+}
+
+/* ---------- INFO BOX ---------- */
+.info {
+    background: #f1f5f9;
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 25px;
+    font-size: 14px;
+    color: #334155;
+    text-align: left;
+}
+
+/* ---------- BACK LINK ---------- */
+.back {
+    display: inline-block;
+    margin-top: 25px;
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.back:hover {
+    text-decoration: underline;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📂 Upload Dataset</h1>
+    <p class="subtitle">
+        Evaluate model performance using your dataset
+    </p>
+
+    <!-- UPLOAD FORM -->
+    <form action="/evaluate" method="post" enctype="multipart/form-data">
+        <div class="upload-box">
+            <p><b>Select a CSV file</b></p>
+            <input type="file" name="dataset" accept=".csv" required>
+            <button type="submit">📊 Evaluate Model</button>
+        </div>
+    </form>
+
+    <!-- DATA FORMAT INFO -->
+    <div class="info">
+        <b>Required CSV format:</b><br><br>
+        <b>Features</b><br>
+        X1 → Relative Compactness<br>
+        X2 → Surface Area<br>
+        X3 → Wall Area<br>
+        X4 → Roof Area<br>
+        X5 → Overall Height<br>
+        X6 → Orientation<br>
+        X7 → Glazing Area<br>
+        X8 → Glazing Distribution<br><br>
+
+        <b>Targets</b><br>
+        Y1 → Heating Load<br>
+        Y2 → Cooling Load
+    </div>
+
+    <a href="/dashboard" class="back">⬅ Back to Dashboard</a>
+
+</div>
+
+</body>
+</html>
