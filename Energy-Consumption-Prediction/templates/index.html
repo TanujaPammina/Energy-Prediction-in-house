@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Energy Prediction</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- TITLE -->
+  <h1>🏢 Building Energy Prediction</h1>
+  <p class="subtitle">Enter building parameters</p>
+
+  <!-- FORM CARD -->
+  <div class="form-card">
+    <form action="/predict" method="post" class="form-grid">
+
+      <input name="Relative_Compactness" required placeholder="Relative Compactness">
+      <input name="Surface_Area" required placeholder="Surface Area">
+      <input name="Wall_Area" required placeholder="Wall Area">
+      <input name="Roof_Area" required placeholder="Roof Area">
+
+      <input name="Overall_Height" required placeholder="Overall Height">
+      <input name="Orientation" required placeholder="Orientation">
+      <input name="Glazing_Area" required placeholder="Glazing Area">
+      <input name="Glazing_Area_Distribution" required placeholder="Glazing Distribution">
+
+      <!-- BUTTON -->
+      <button type="submit" class="primary-btn">
+        ⚡ Predict Energy
+      </button>
+
+    </form>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-row">
+    <a href="/dashboard" class="action-btn">📊 Open Dashboard</a>
+    <a href="/upload" class="action-btn">📂 Upload Dataset</a>
+  </div>
+
+</div>
+
+</body>
+</html>

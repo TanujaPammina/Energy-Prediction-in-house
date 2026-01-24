@@ -1,0 +1,212 @@
+/* ================= GLOBAL ================= */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Poppins", system-ui, sans-serif;
+  min-height: 100vh;
+
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  background-size: 200% 200%;
+  animation: bgMove 12s ease infinite;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  color: #0f172a;
+}
+
+/* Background motion */
+@keyframes bgMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ================= CONTAINER ================= */
+.container {
+  max-width: 1100px;
+  width: 100%;
+  padding: 3.5rem 1.5rem 4rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  animation: fadeSlide .8s ease;
+}
+
+/* ================= HEADERS ================= */
+h1 {
+  font-size: 2.7rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: .4rem;
+}
+
+.subtitle {
+  color: #64748b;
+  margin-bottom: 3rem;
+}
+
+/* ================= FORM CARD ================= */
+.form-card {
+  width: 100%;
+  background: white;
+  border-radius: 26px;
+  padding: 2.8rem;
+
+  border: 3px solid rgba(99,102,241,.2);
+  box-shadow:
+    0 40px 120px rgba(99,102,241,.2);
+
+  animation: liftIn .7s ease;
+  transition: transform .35s ease, box-shadow .35s ease;
+}
+
+.form-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 50px 150px rgba(99,102,241,.35);
+}
+
+/* ================= GRID ================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.6rem;
+}
+
+/* ================= INPUTS ================= */
+input {
+  padding: .9rem 1rem;
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  font-size: .9rem;
+  transition: .25s;
+}
+
+input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.25);
+  outline: none;
+}
+
+/* ================= BUTTON ================= */
+.primary-btn {
+  margin-top: 1.5rem;
+  grid-column: 1 / -1;
+
+  background: linear-gradient(135deg, #6366f1, #9333ea);
+  color: white;
+  padding: .9rem 2.8rem;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+
+  box-shadow: 0 20px 60px rgba(99,102,241,.55);
+  transition: .25s;
+
+  animation: pulse 2.5s infinite;
+}
+
+.primary-btn:hover {
+  transform: translateY(-5px) scale(1.04);
+  box-shadow: 0 35px 90px rgba(139,92,246,.75);
+}
+
+/* Button pulse */
+@keyframes pulse {
+  0%,100% { box-shadow: 0 20px 60px rgba(99,102,241,.45); }
+  50% { box-shadow: 0 30px 90px rgba(139,92,246,.75); }
+}
+
+/* ================= ACTION BUTTONS ================= */
+.action-row {
+  margin-top: 3rem;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  padding: .7rem 1.9rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+
+  box-shadow: 0 18px 45px rgba(99,102,241,.4);
+  transition: .25s;
+}
+
+.action-btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 30px 80px rgba(99,102,241,.65);
+}
+
+/* ================= ANIMATIONS ================= */
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes liftIn {
+  from { opacity: 0; transform: translateY(30px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:600px) {
+  h1 { font-size: 2.2rem; }
+}
+/* ================= PREDICT PAGE OUTLINERS (MATCH DASHBOARD) ================= */
+
+/* Form main card outline */
+.form-card {
+  border: 3px solid #6366f1;               /* same indigo as dashboard */
+  box-shadow:
+    0 25px 60px rgba(99,102,241,.25),
+    inset 0 0 0 1px rgba(99,102,241,.15);
+}
+
+/* On hover – slightly stronger */
+.form-card:hover {
+  box-shadow:
+    0 40px 95px rgba(99,102,241,.45),
+    inset 0 0 0 1px rgba(99,102,241,.2);
+}
+
+/* Input outlines like dashboard cards */
+.form-grid input {
+  border: 2px solid #e5e7eb;
+  background: white;
+}
+
+/* Input focus = dashboard glow */
+.form-grid input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.25);
+}
+
+/* Predict button outline polish */
+.primary-btn {
+  border: 2px solid rgba(99,102,241,.35);
+}
+
+/* Secondary buttons (dashboard & upload) */
+.action-btn {
+  border: 2px solid rgba(99,102,241,.35);
+}
+
+/* Hover glow like dashboard cards */
+.action-btn:hover {
+  box-shadow:
+    0 28px 80px rgba(99,102,241,.6);
+}

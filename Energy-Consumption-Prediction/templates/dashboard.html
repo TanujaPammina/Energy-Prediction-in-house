@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Energy Consumption Prediction</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --indigo:#6366f1;
+  --orange:#f97316;
+  --blue:#3b82f6;
+  --green:#22c55e;
+}
+
+body{
+  margin:0;
+  font-family:Poppins,system-ui;
+  background:linear-gradient(135deg,#eef2ff,#f8fafc);
+  color:#0f172a;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:40px 20px 60px;
+}
+
+/* HEADER */
+.header{text-align:center;margin-bottom:40px;}
+.header h1{font-size:2.6rem;margin:0;}
+.header p{color:#64748b;margin-top:6px;}
+
+/* TABS */
+.tabs{
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  margin:30px 0 50px;
+}
+.tab{
+  padding:12px 30px;
+  border:none;
+  border-radius:999px;
+  background:#e5e7eb;
+  font-weight:600;
+  cursor:pointer;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--indigo),#8b5cf6);
+  color:white;
+}
+
+/* SECTIONS */
+.section{display:none;animation:fade .4s ease}
+.section.active{display:block}
+@keyframes fade{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.section-title{text-align:center;font-size:1.6rem;margin-bottom:6px;}
+.section-desc{text-align:center;color:#64748b;margin-bottom:30px;}
+
+/* CARDS */
+.card-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:22px;
+  margin-bottom:40px;
+}
+.card{
+  background:white;
+  padding:24px;
+  border-radius:18px;
+  text-align:center;
+  box-shadow:0 18px 40px rgba(0,0,0,.08);
+  border-top:4px solid var(--indigo);
+}
+.card:nth-child(2){border-color:var(--orange)}
+.card:nth-child(3){border-color:var(--blue)}
+.card:nth-child(4){border-color:var(--green)}
+.metric{font-size:1.9rem;font-weight:700;margin-top:10px}
+
+/* CHARTS */
+.chart-wrap{max-width:1000px;margin:0 auto 50px}
+.chart-box{
+  background:white;
+  padding:28px;
+  border-radius:22px;
+  box-shadow:0 25px 60px rgba(0,0,0,.1);
+}
+
+.analysis-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:32px;
+}
+/* ===== FLOATING ICON ===== */
+#chat-toggle{
+  position:fixed;
+  bottom:22px;
+  right:22px;
+  width:60px;
+  height:60px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-size:26px;
+  cursor:pointer;
+  box-shadow:0 20px 50px rgba(99,102,241,.5);
+  z-index:999;
+}
+
+/* ===== CHAT WINDOW ===== */
+#chatbot{
+  position:fixed;
+  bottom:95px;
+  right:22px;
+  width:340px;
+  background:white;
+  border-radius:18px;
+  box-shadow:0 30px 80px rgba(0,0,0,.25);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  z-index:999;
+  animation:pop .3s ease;
+}
+
+.hidden{display:none}
+
+@keyframes pop{
+  from{opacity:0;transform:scale(.85)}
+  to{opacity:1;transform:scale(1)}
+}
+
+#chat-header{
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  color:white;
+  padding:14px;
+  font-weight:700;
+  display:flex;
+  justify-content:space-between;
+}
+
+#chat-suggestions{
+  padding:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#chat-suggestions button{
+  background:#eef2ff;
+  border:none;
+  border-radius:999px;
+  padding:6px 10px;
+  cursor:pointer;
+  font-size:.8rem;
+}
+
+#chat-body{
+  padding:12px;
+  height:240px;
+  overflow-y:auto;
+  font-size:.9rem;
+}
+
+.msg-user{color:#6366f1;font-weight:600;margin-bottom:6px}
+.msg-bot{color:#111827;margin-bottom:10px}
+
+#chat-input{
+  display:flex;
+  gap:6px;
+  padding:10px;
+  border-top:1px solid #e5e7eb;
+}
+#chat-input input{
+  flex:1;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+}
+#chat-input button{
+  background:#6366f1;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:0 12px;
+  cursor:pointer;
+}
+/* FORCE chatbot closed initially */
+#chatbot.hidden {
+  display: none !important;
+}
+#chatbot {
+  animation: pop 0.25s ease;
+}
+
+
+
+.footer{text-align:center;margin-top:50px}
+.footer a{text-decoration:none;font-weight:600;color:var(--indigo)}
+
+@media(max-width:900px){
+  .card-row{grid-template-columns:1fr 1fr}
+  .analysis-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .card-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>🏢 Energy Consumption Prediction</h1>
+  <p>Machine Learning • Smart Buildings • Visual Analytics</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab" onclick="showTab('analysis',this)">Analysis</button>
+  <button class="tab" onclick="showTab('insights',this)">Insights</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="overview-section" class="section active">
+  <h2 class="section-title">Model Performance</h2>
+  <p class="section-desc">Evaluation metrics of the ML model</p>
+
+  <div class="card-row">
+    <div class="card">MAE<div class="metric" id="mae">0</div></div>
+    <div class="card">RMSE<div class="metric" id="rmse">0</div></div>
+    <div class="card">RMSLE<div class="metric" id="rmsle">0</div></div>
+    <div class="card">R²<div class="metric" id="r2">0</div></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-box">
+      <canvas id="metricChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYSIS -->
+<div id="analysis-section" class="section">
+  <h2 class="section-title">Energy Consumption Analysis</h2>
+  <p class="section-desc">Heating, Cooling & Total trends</p>
+
+  <div class="chart-wrap">
+    <div class="chart-box">
+      <canvas id="energyChart"></canvas>
+    </div>
+  </div>
+
+  <div class="analysis-grid">
+    <div class="chart-box">
+      <canvas id="energyPieChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h3 style="text-align:center">Avg Total Energy</h3>
+      <div id="avgTotal" style="text-align:center;font-size:2.6rem;font-weight:800;color:#22c55e">0</div>
+      <canvas id="miniTotalChart" style="margin-top:16px;height:160px"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div id="insights-section" class="section">
+  <h2 class="section-title">Model Insights</h2>
+  <p class="section-desc">Feature importance</p>
+
+  <div class="chart-wrap">
+    <div class="chart-box">
+      <canvas id="featureChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="chat-toggle" onclick="toggleChat()">🤖</div>
+<div id="chatbot" class="hidden">
+  <div id="chat-header">
+    ⚡ Energy Assistant
+    <span onclick="toggleChat()" style="cursor:pointer;">✖</span>
+  </div>
+
+  <div id="chat-suggestions">
+    <button onclick="quickAsk('Explain RMSE')">Explain RMSE</button>
+    <button onclick="quickAsk('Why is heating higher?')">Heating vs Cooling</button>
+    <button onclick="quickAsk('How is model performance?')">Model Performance</button>
+  </div>
+
+  <div id="chat-body"></div>
+
+  <div id="chat-input">
+    <button onclick="startVoice()">🎤</button>
+    <input id="chat-text" placeholder="Ask about energy or model..." />
+    <button onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+
+<div class="footer">
+  <a href="/upload">← Upload New Dataset</a>
+</div>
+
+</div>
+
+<!-- FLASK DATA -->
+<script type="application/json" id="data">
+{
+  "mae": {{ mae | default(0) | tojson }},
+  "rmse": {{ rmse | default(0) | tojson }},
+  "rmsle": {{ rmsle | default(0) | tojson }},
+  "r2": {{ r2 | default(0) | tojson }},
+  "heating": {{ heating_series | default([]) | tojson }},
+  "cooling": {{ cooling_series | default([]) | tojson }},
+  "total": {{ total_series | default([]) | tojson }}
+}
+</script>
+
+<script>
+const D = JSON.parse(document.getElementById("data").textContent);
+
+/* Number animation */
+function animate(id,val){
+  const el=document.getElementById(id);
+  let cur=0,step=val/40;
+  const t=setInterval(()=>{
+    cur+=step;
+    el.innerText=cur.toFixed(3);
+    if(cur>=val){el.innerText=val.toFixed(3);clearInterval(t)}
+  },20);
+}
+animate("mae",D.mae);
+animate("rmse",D.rmse);
+animate("rmsle",D.rmsle);
+animate("r2",D.r2);
+
+/* Tabs */
+function showTab(tab,btn){
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(tab+"-section").classList.add("active");
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+/* Charts */
+new Chart(metricChart,{
+  type:"bar",
+  data:{
+    labels:["MAE","RMSE","RMSLE","R²"],
+    datasets:[{data:[D.mae,D.rmse,D.rmsle,D.r2],backgroundColor:"#6366f1"}]
+  }
+});
+
+const labels = D.heating.length ? D.heating.map((_,i)=>"Sample "+(i+1)) : ["Sample 1"];
+
+new Chart(energyChart,{
+  type:"line",
+  data:{
+    labels:labels,
+    datasets:[
+      {label:"Heating",data:D.heating.length?D.heating:[0],borderColor:"#f97316",tension:.4},
+      {label:"Cooling",data:D.cooling.length?D.cooling:[0],borderColor:"#3b82f6",tension:.4},
+      {label:"Total",data:D.total.length?D.total:[0],borderColor:"#22c55e",tension:.4}
+    ]
+  }
+});
+
+new Chart(energyPieChart,{
+  type:"doughnut",
+  data:{
+    labels:["Heating","Cooling"],
+    datasets:[{
+      data:[
+        D.heating.reduce((a,b)=>a+b,0),
+        D.cooling.reduce((a,b)=>a+b,0)
+      ],
+      backgroundColor:["#f97316","#3b82f6"]
+    }]
+  }
+});
+
+const avgTotal = D.total.length ? D.total.reduce((a,b)=>a+b,0)/D.total.length : 0;
+document.getElementById("avgTotal").innerText = avgTotal.toFixed(2);
+
+new Chart(miniTotalChart,{
+  type:"bar",
+  data:{labels:["Total"],datasets:[{data:[avgTotal],backgroundColor:"#22c55e",borderRadius:12}]},
+  options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{beginAtZero:true}}}
+});
+
+new Chart(featureChart,{
+  type:"bar",
+  data:{
+    labels:["Compactness","Height","Glazing","Surface","Wall","Roof","Orientation"],
+    datasets:[{data:[0.95,0.9,0.82,0.74,0.69,0.61,0.4],backgroundColor:"#22c55e"}]
+  },
+  options:{indexAxis:"y"}
+});
+
+
+function toggleChat(){
+  const chat = document.getElementById("chatbot");
+  chat.classList.toggle("hidden");
+}
+
+function quickAsk(text){
+  document.getElementById("chat-text").value=text;
+  sendChat();
+}
+
+function sendChat(){
+  const input=document.getElementById("chat-text");
+  const msg=input.value.trim();
+  if(!msg) return;
+
+  const body=document.getElementById("chat-body");
+  body.innerHTML+=`<div class="msg-user">You: ${msg}</div>`;
+  input.value="";
+
+  fetch("/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:msg})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    body.innerHTML+=`<div class="msg-bot">Bot: ${d.reply}</div>`;
+    body.scrollTop=body.scrollHeight;
+  });
+}
+
+/* 🎤 VOICE INPUT */
+function startVoice(){
+  if(!('webkitSpeechRecognition'in window)) return alert("Voice not supported");
+  const rec=new webkitSpeechRecognition();
+  rec.lang="en-US";
+  rec.onresult=e=>{
+    document.getElementById("chat-text").value=e.results[0][0].transcript;
+  };
+  rec.start();
+}
+</script>
+
+
+
+<!-- Floating Chat Button -->
+
+
+</body>
+</html>
+

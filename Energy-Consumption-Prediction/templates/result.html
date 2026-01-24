@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prediction Result</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="container">
+<h1>🔮 Energy Prediction Result</h1>
+
+<div class="cards">
+<div class="card heat">Heating Load<br><b>{{ heating }} kWh</b></div>
+<div class="card cool">Cooling Load<br><b>{{ cooling }} kWh</b></div>
+<div class="card total">Total Energy<br><b>{{ total }} kWh</b></div>
+</div>
+
+<canvas id="energyChart"></canvas>
+
+<a href="/" class="back">⬅ Predict Again</a>
+<a href="/dashboard" class="back">📊 View Dashboard</a>
+</div>
+
+<script>
+new Chart(document.getElementById("energyChart"), {
+    type: "bar",
+    data: {
+        labels: ["Heating", "Cooling", "Total"],
+        datasets: [{
+            data: [{{ heating }}, {{ cooling }}, {{ total }}],
+            backgroundColor: ["#f97316", "#38bdf8", "#22c55e"],
+            borderRadius: 10
+        }]
+    },
+    options: {
+        animation: { duration: 1200 },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+</body>
+</html>
