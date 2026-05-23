@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Dataset — EnergyIQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    body { background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 60%, #f5f3ff 100%); }
+
+    .upload-layout {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--slate-200);
+      border-radius: var(--radius-xl);
+      padding: 3.5rem 2rem;
+      text-align: center;
+      background: var(--white);
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .drop-zone.drag-over {
+      border-color: var(--indigo);
+      background: #eef2ff;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone .dz-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+
+    .drop-zone h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-bottom: .4rem;
+    }
+
+    .drop-zone p {
+      color: var(--slate-400);
+      font-size: .9rem;
+    }
+
+    .drop-zone .dz-or {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      color: var(--slate-300);
+      font-size: .85rem;
+    }
+
+    .drop-zone .dz-or::before,
+    .drop-zone .dz-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--slate-200);
+    }
+
+    .file-selected {
+      display: none;
+      align-items: center;
+      gap: .75rem;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: var(--radius-md);
+      padding: .75rem 1rem;
+      margin-top: 1rem;
+      font-size: .875rem;
+      color: var(--indigo);
+      font-weight: 600;
+    }
+
+    .file-selected.show { display: flex; }
+
+    /* Schema card */
+    .schema-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--slate-200);
+      overflow: hidden;
+      margin-top: 1.5rem;
+    }
+
+    .schema-card .sc-header {
+      padding: 1rem 1.5rem;
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--slate-800);
+    }
+
+    /* Tips */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .tip-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.25rem;
+      border: 1px solid var(--slate-200);
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      font-size: .875rem;
+    }
+
+    .tip-card .tip-icon { font-size: 1.3rem; flex-shrink: 0; }
+
+    .tip-card strong { display: block; color: var(--slate-800); margin-bottom: .2rem; }
+    .tip-card span   { color: var(--slate-500); }
+
+    @media (max-width: 600px) {
+      .tips-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">⚡</div>
+    EnergyIQ
+  </div>
+  <ul class="navbar-links">
+    <li><a href="/">Predict</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/upload" class="active">Upload Data</a></li>
+    <li><a href="/" class="nav-cta">⚡ Run Prediction</a></li>
+  </ul>
+</nav>
+
+<main class="page-wrapper">
+  <div class="upload-layout">
+
+    <!-- PAGE HERO -->
+    <div class="page-hero">
+      <div class="badge">📂 Dataset Evaluation</div>
+      <h1>Upload Your Dataset</h1>
+      <p>Upload a CSV file to evaluate model performance and populate the analytics dashboard with real metrics.</p>
+    </div>
+
+    <!-- UPLOAD FORM -->
+    <form action="/evaluate" method="post" enctype="multipart/form-data" id="uploadForm">
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" name="dataset" accept=".csv" id="fileInput" required>
+        <div class="dz-icon">📁</div>
+        <h3>Drag &amp; drop your CSV file here</h3>
+        <p>Supports .csv files up to 50 MB</p>
+        <div class="dz-or">or</div>
+        <span class="btn btn-outline" style="pointer-events:none;">Browse Files</span>
+        <div class="file-selected" id="fileSelected">
+          <span>📄</span>
+          <span id="fileName">No file selected</span>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;">
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="evalBtn">
+          📊 Evaluate &amp; Update Dashboard
+        </button>
+      </div>
+
+    </form>
+
+    <!-- SCHEMA TABLE -->
+    <div class="schema-card">
+      <div class="sc-header">📋 Required CSV Schema</div>
+      <table class="schema-table">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>X1</strong></td><td>Relative Compactness</td><td>Building shape compactness ratio</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X2</strong></td><td>Surface Area</td><td>Total surface area in m²</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X3</strong></td><td>Wall Area</td><td>Total wall area in m²</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X4</strong></td><td>Roof Area</td><td>Total roof area in m²</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X5</strong></td><td>Overall Height</td><td>Building height in metres</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X6</strong></td><td>Orientation</td><td>Cardinal direction (2–5)</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X7</strong></td><td>Glazing Area</td><td>Window area as fraction (0–0.4)</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>X8</strong></td><td>Glazing Distribution</td><td>Window placement pattern (0–5)</td><td><span class="tag tag-feature">Feature</span></td></tr>
+          <tr><td><strong>Y1</strong></td><td>Heating Load</td><td>Target: heating energy (kWh/m²)</td><td><span class="tag tag-target">Target</span></td></tr>
+          <tr><td><strong>Y2</strong></td><td>Cooling Load</td><td>Target: cooling energy (kWh/m²)</td><td><span class="tag tag-target">Target</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TIPS -->
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">✅</div>
+        <div>
+          <strong>Use the original column names</strong>
+          <span>The system accepts both X1–X8/Y1–Y2 and the full descriptive names.</span>
+        </div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🧹</div>
+        <div>
+          <strong>Clean your data first</strong>
+          <span>Rows with missing values are automatically dropped before evaluation.</span>
+        </div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">📏</div>
+        <div>
+          <strong>Minimum 10 rows recommended</strong>
+          <span>Larger datasets produce more reliable metric estimates and richer charts.</span>
+        </div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🔄</div>
+        <div>
+          <strong>Dashboard auto-updates</strong>
+          <span>After upload, you'll be redirected to the dashboard with fresh metrics.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:2rem;">
+      <a href="/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="page-footer">
+  <p>EnergyIQ &copy; 2025 — Building Energy Prediction Platform</p>
+</footer>
+
+<script>
+  const dropZone  = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  const fileSelected = document.getElementById("fileSelected");
+  const fileName  = document.getElementById("fileName");
+  const evalBtn   = document.getElementById("evalBtn");
+
+  // Show selected file name
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) {
+      fileName.textContent = fileInput.files[0].name;
+      fileSelected.classList.add("show");
+    }
+  });
+
+  // Drag & drop visual feedback
+  dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      fileName.textContent = e.dataTransfer.files[0].name;
+      fileSelected.classList.add("show");
+    }
+  });
+
+  // Loading state
+  document.getElementById("uploadForm").addEventListener("submit", () => {
+    evalBtn.innerHTML = '<span class="spinner"></span> Evaluating…';
+    evalBtn.disabled = true;
+  });
+</script>
+
+<!-- ===== CHATBOT ===== -->
+<button id="chat-fab" onclick="toggleChat()" title="AI Energy Assistant">🤖</button>
+<div id="chat-window" style="display:none;position:fixed;bottom:106px;right:28px;width:370px;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.22);flex-direction:column;overflow:hidden;z-index:9999;border:1px solid #e2e8f0;">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem;">
+      <span>⚡</span>
+      <div><div>Energy Assistant</div><div style="font-size:.72rem;opacity:.8;">Powered by Llama 3.1</div></div>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+  <div style="padding:10px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f1f5f9;">
+    <button class="cc" onclick="quickAsk('Explain the R² score')">Explain R²</button>
+    <button class="cc" onclick="quickAsk('Why is heating higher than cooling?')">Heating vs Cooling</button>
+    <button class="cc" onclick="quickAsk('How is the model performing?')">Model Health</button>
+    <button class="cc" onclick="quickAsk('What features matter most?')">Key Features</button>
+  </div>
+  <div id="chat-body" style="padding:14px;height:270px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+    <div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">
+      👋 Hi! I'm your Energy Analytics Assistant. Ask me anything about predictions, metrics, or energy efficiency.
+    </div>
+  </div>
+  <div style="padding:10px 12px;border-top:1px solid #f1f5f9;display:flex;gap:8px;align-items:center;">
+    <button onclick="startVoice()" style="background:#f1f5f9;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎤</button>
+    <input id="chat-input" placeholder="Ask about energy or model…" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;padding:9px 13px;border-radius:999px;border:2px solid #e2e8f0;font-size:.875rem;font-family:inherit;outline:none;">
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>
+  </div>
+</div>
+<style>
+  #chat-fab{position:fixed;bottom:28px;right:28px;width:62px;height:62px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;cursor:pointer;box-shadow:0 8px 30px rgba(99,102,241,.55);z-index:9999;transition:transform .2s;}
+  #chat-fab:hover{transform:scale(1.1);}
+  .cc{background:#f1f5f9;border:none;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:500;cursor:pointer;font-family:inherit;color:#475569;}
+  .cc:hover{background:#eef2ff;color:#6366f1;}
+</style>
+<script>
+  function toggleChat(){
+    var w=document.getElementById("chat-window");
+    w.style.display=(w.style.display==="none"||w.style.display==="")?"flex":"none";
+  }
+  function quickAsk(t){document.getElementById("chat-input").value=t;sendChat();}
+  function sendChat(){
+    var input=document.getElementById("chat-input");
+    var msg=input.value.trim();
+    if(!msg)return;
+    var body=document.getElementById("chat-body");
+    body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:.875rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;align-self:flex-end;">'+msg+'</div>';
+    input.value="";
+    body.scrollTop=body.scrollHeight;
+    var tid="t"+Date.now();
+    body.innerHTML+='<div id="'+tid+'" style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#94a3b8;align-self:flex-start;font-style:italic;">⏳ Thinking…</div>';
+    body.scrollTop=body.scrollHeight;
+    fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">'+d.reply+'</div>';
+      body.scrollTop=body.scrollHeight;
+    })
+    .catch(function(){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">⚠️ Could not reach assistant.</div>';
+      body.scrollTop=body.scrollHeight;
+    });
+  }
+  function startVoice(){
+    if(!("webkitSpeechRecognition"in window)){alert("Voice not supported. Use Chrome.");return;}
+    var rec=new webkitSpeechRecognition();rec.lang="en-US";
+    rec.onresult=function(e){document.getElementById("chat-input").value=e.results[0][0].transcript;};
+    rec.start();
+  }
+</script>
+
+</body>
+</html>

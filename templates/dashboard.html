@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — EnergyIQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: var(--slate-50); }
+
+    /* ---- DASHBOARD LAYOUT ---- */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .dash-header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--slate-900);
+    }
+
+    .dash-header p { color: var(--slate-500); font-size: .9rem; }
+
+    .dash-actions { display: flex; gap: .75rem; }
+
+    /* ---- STAT CARDS ---- */
+    .stat-card[data-accent="indigo"] { --accent: var(--indigo); --accent-bg: #eef2ff; }
+    .stat-card[data-accent="orange"] { --accent: var(--orange); --accent-bg: #fff7ed; }
+    .stat-card[data-accent="blue"]   { --accent: var(--blue);   --accent-bg: #eff6ff; }
+    .stat-card[data-accent="green"]  { --accent: var(--green);  --accent-bg: #f0fdf4; }
+
+    /* ---- ENERGY SUMMARY ROW ---- */
+    .energy-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .energy-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: var(--transition);
+    }
+
+    .energy-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+    .energy-card .ec-icon {
+      width: 52px; height: 52px;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .ec-heat  .ec-icon { background: #fff7ed; }
+    .ec-cool  .ec-icon { background: #eff6ff; }
+    .ec-total .ec-icon { background: #f0fdf4; }
+
+    .energy-card .ec-label {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--slate-400);
+      margin-bottom: .25rem;
+    }
+
+    .energy-card .ec-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .ec-heat  .ec-value { color: #f97316; }
+    .ec-cool  .ec-value { color: #3b82f6; }
+    .ec-total .ec-value { color: #22c55e; }
+
+    .energy-card .ec-unit {
+      font-size: .75rem;
+      color: var(--slate-400);
+      margin-top: .2rem;
+    }
+
+    /* ---- CHART GRID ---- */
+    .charts-row-1 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .charts-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ---- FEATURE IMPORTANCE ---- */
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: .75rem;
+    }
+
+    .feature-row:last-child { margin-bottom: 0; }
+
+    .feat-name {
+      width: 130px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      flex-shrink: 0;
+    }
+
+    .feat-bar-wrap {
+      flex: 1;
+      background: var(--slate-100);
+      border-radius: var(--radius-full);
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .feat-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      background: linear-gradient(90deg, var(--indigo), var(--purple));
+      transition: width 1s ease;
+    }
+
+    .feat-pct {
+      width: 38px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--slate-500);
+    }
+
+    /* ---- EMPTY STATE ---- */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--slate-400);
+    }
+
+    .empty-state .es-icon { font-size: 3rem; margin-bottom: .75rem; }
+    .empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--slate-600); margin-bottom: .4rem; }
+    .empty-state p  { font-size: .875rem; }
+
+    @media (max-width: 900px) {
+      .charts-row-1 { grid-template-columns: 1fr; }
+      .energy-summary { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 700px) {
+      .charts-row-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================================
+       CHATBOT — self-contained so it always works
+       ============================================================ */
+    #chat-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 62px;
+      height: 62px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(99,102,241,.55);
+      z-index: 9999;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #chat-fab:hover { transform: scale(1.1); box-shadow: 0 12px 40px rgba(99,102,241,.7); }
+
+    #chat-window {
+      position: fixed;
+      bottom: 106px;
+      right: 28px;
+      width: 370px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.22);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 9999;
+      border: 1px solid #e2e8f0;
+      animation: chatPop .25s ease;
+    }
+    #chat-window.hidden { display: none !important; }
+
+    @keyframes chatPop {
+      from { opacity: 0; transform: scale(.88) translateY(14px); }
+      to   { opacity: 1; transform: scale(1)   translateY(0); }
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-header .chat-title {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: .95rem;
+    }
+    .chat-header .chat-status { font-size: .72rem; opacity: .8; margin-top: 2px; }
+    .chat-close {
+      background: rgba(255,255,255,.2);
+      border: none; color: #fff;
+      width: 28px; height: 28px;
+      border-radius: 50%; cursor: pointer;
+      font-size: 1rem; display: flex;
+      align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .chat-close:hover { background: rgba(255,255,255,.35); }
+
+    .chat-chips {
+      padding: 10px 12px;
+      display: flex; gap: 6px; flex-wrap: wrap;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .chat-chip {
+      background: #f1f5f9; border: none;
+      border-radius: 999px; padding: 5px 11px;
+      font-size: .75rem; font-weight: 500;
+      cursor: pointer; transition: background .2s, color .2s;
+      font-family: inherit; color: #475569;
+    }
+    .chat-chip:hover { background: #eef2ff; color: #6366f1; }
+
+    .chat-body {
+      padding: 14px;
+      height: 270px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-body::-webkit-scrollbar { width: 4px; }
+    .chat-body::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 99px; }
+
+    .chat-msg {
+      max-width: 85%;
+      padding: 9px 13px;
+      border-radius: 14px;
+      font-size: .875rem;
+      line-height: 1.5;
+    }
+    .chat-msg.user {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.bot {
+      background: #f1f5f9;
+      color: #1e293b;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.typing {
+      background: #f1f5f9;
+      color: #94a3b8;
+      align-self: flex-start;
+      font-style: italic;
+    }
+
+    .chat-footer {
+      padding: 10px 12px;
+      border-top: 1px solid #f1f5f9;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .chat-footer input {
+      flex: 1;
+      padding: 9px 13px;
+      border-radius: 999px;
+      border: 2px solid #e2e8f0;
+      font-size: .875rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .chat-footer input:focus { border-color: #6366f1; }
+    .btn-send {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; border: none;
+      border-radius: 50%;
+      width: 38px; height: 38px;
+      cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: transform .2s;
+    }
+    .btn-send:hover { transform: scale(1.1); }
+    .btn-voice {
+      background: #f1f5f9; border: none;
+      border-radius: 50%;
+      width: 38px; height: 38px;
+      cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .2s;
+    }
+    .btn-voice:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">⚡</div>
+    EnergyIQ
+  </div>
+  <ul class="navbar-links">
+    <li><a href="/">Predict</a></li>
+    <li><a href="/dashboard" class="active">Dashboard</a></li>
+    <li><a href="/upload">Upload Data</a></li>
+    <li><a href="/" class="nav-cta">⚡ Run Prediction</a></li>
+  </ul>
+</nav>
+
+<main class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="dash-header">
+    <div>
+      <h1>📊 Analytics Dashboard</h1>
+      <p>Model performance metrics and energy consumption insights</p>
+    </div>
+    <div class="dash-actions">
+      <a href="/upload" class="btn btn-secondary">📂 Upload Dataset</a>
+      <a href="/" class="btn btn-primary">⚡ New Prediction</a>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('analysis', this)">Analysis</button>
+    <button class="tab-btn" onclick="switchTab('insights', this)">Insights</button>
+  </div>
+
+  <!-- ===================== OVERVIEW TAB ===================== -->
+  <div id="tab-overview" class="tab-panel active">
+
+    <!-- METRIC STAT CARDS -->
+    <div class="stat-grid" style="margin-bottom:2rem;">
+      <div class="stat-card" data-accent="indigo">
+        <div class="stat-icon">📉</div>
+        <div class="stat-label">MAE</div>
+        <div class="stat-value" id="stat-mae">—</div>
+        <div class="stat-sub">Mean Absolute Error</div>
+      </div>
+      <div class="stat-card" data-accent="orange">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">RMSE</div>
+        <div class="stat-value" id="stat-rmse">—</div>
+        <div class="stat-sub">Root Mean Sq. Error</div>
+      </div>
+      <div class="stat-card" data-accent="blue">
+        <div class="stat-icon">📐</div>
+        <div class="stat-label">RMSLE</div>
+        <div class="stat-value" id="stat-rmsle">—</div>
+        <div class="stat-sub">Log-scale Error</div>
+      </div>
+      <div class="stat-card" data-accent="green">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">R² Score</div>
+        <div class="stat-value" id="stat-r2">—</div>
+        <div class="stat-sub">Coefficient of Determination</div>
+      </div>
+    </div>
+
+    <!-- METRIC CHART -->
+    <div class="chart-card" style="margin-bottom:1.5rem;">
+      <div class="chart-title">📈 Model Metrics Overview</div>
+      <canvas id="metricChart" height="100"></canvas>
+    </div>
+
+    <!-- ENERGY SUMMARY -->
+    <div class="energy-summary">
+      <div class="energy-card ec-heat">
+        <div class="ec-icon">🔥</div>
+        <div>
+          <div class="ec-label">Avg Heating Load</div>
+          <div class="ec-value" id="avg-heat">—</div>
+          <div class="ec-unit">kWh/m²</div>
+        </div>
+      </div>
+      <div class="energy-card ec-cool">
+        <div class="ec-icon">❄️</div>
+        <div>
+          <div class="ec-label">Avg Cooling Load</div>
+          <div class="ec-value" id="avg-cool">—</div>
+          <div class="ec-unit">kWh/m²</div>
+        </div>
+      </div>
+      <div class="energy-card ec-total">
+        <div class="ec-icon">⚡</div>
+        <div>
+          <div class="ec-label">Avg Total Energy</div>
+          <div class="ec-value" id="avg-total">—</div>
+          <div class="ec-unit">kWh/m²</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== ANALYSIS TAB ===================== -->
+  <div id="tab-analysis" class="tab-panel">
+
+    <!-- LINE CHART: Trends -->
+    <div class="chart-card" style="margin-bottom:1.5rem;">
+      <div class="chart-title">📉 Heating · Cooling · Total Energy Trends</div>
+      <canvas id="trendChart" height="110"></canvas>
+    </div>
+
+    <div class="charts-row-2">
+      <!-- DOUGHNUT -->
+      <div class="chart-card">
+        <div class="chart-title">🍩 Heating vs Cooling Split</div>
+        <canvas id="donutChart" height="220"></canvas>
+      </div>
+
+      <!-- SCATTER -->
+      <div class="chart-card">
+        <div class="chart-title">🔵 Heating vs Cooling Scatter</div>
+        <canvas id="scatterChart" height="220"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== INSIGHTS TAB ===================== -->
+  <div id="tab-insights" class="tab-panel">
+
+    <div class="charts-row-2">
+      <!-- FEATURE IMPORTANCE (horizontal bars) -->
+      <div class="chart-card">
+        <div class="chart-title">🏆 Feature Importance</div>
+        <canvas id="featureChart" height="260"></canvas>
+      </div>
+
+      <!-- RADAR -->
+      <div class="chart-card">
+        <div class="chart-title">🕸️ Feature Radar</div>
+        <canvas id="radarChart" height="260"></canvas>
+      </div>
+    </div>
+
+    <!-- METRIC EXPLANATION CARDS -->
+    <div class="charts-row-2" style="margin-top:1.5rem;">
+      <div class="chart-card">
+        <div class="chart-title">💡 What do the metrics mean?</div>
+        <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem;">
+          <div class="interpretation-item" style="display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;background:var(--slate-50);border-radius:var(--radius-md);font-size:.875rem;color:var(--slate-700);">
+            <span>📉</span>
+            <div><strong>MAE</strong> — Average absolute difference between predicted and actual values. Lower is better.</div>
+          </div>
+          <div class="interpretation-item" style="display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;background:var(--slate-50);border-radius:var(--radius-md);font-size:.875rem;color:var(--slate-700);">
+            <span>📊</span>
+            <div><strong>RMSE</strong> — Penalises large errors more heavily than MAE. Lower is better.</div>
+          </div>
+          <div class="interpretation-item" style="display:flex;gap:.75rem;align-items:flex-start;padding:.75rem;background:var(--slate-50);border-radius:var(--radius-md);font-size:.875rem;color:var(--slate-700);">
+            <span>🎯</span>
+            <div><strong>R²</strong> — Proportion of variance explained by the model. Closer to 1.0 is better.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">📌 Feature Importance Breakdown</div>
+        <div id="feat-bars" style="margin-top:.5rem;"></div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- ===== CHATBOT ===== -->
+<button id="chat-fab" onclick="toggleChat()" title="AI Energy Assistant">🤖</button>
+<div id="chat-window" style="display:none;position:fixed;bottom:106px;right:28px;width:370px;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.22);flex-direction:column;overflow:hidden;z-index:9999;border:1px solid #e2e8f0;">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem;">
+      <span>⚡</span>
+      <div><div>Energy Assistant</div><div style="font-size:.72rem;opacity:.8;">Powered by Llama 3.1</div></div>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+  <div style="padding:10px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f1f5f9;">
+    <button class="cc" onclick="quickAsk('Explain the R² score')">Explain R²</button>
+    <button class="cc" onclick="quickAsk('Why is heating higher than cooling?')">Heating vs Cooling</button>
+    <button class="cc" onclick="quickAsk('How is the model performing?')">Model Health</button>
+    <button class="cc" onclick="quickAsk('What features matter most?')">Key Features</button>
+  </div>
+  <div id="chat-body" style="padding:14px;height:270px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+    <div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">
+      👋 Hi! I'm your Energy Analytics Assistant. Ask me anything about predictions, metrics, or energy efficiency.
+    </div>
+  </div>
+  <div style="padding:10px 12px;border-top:1px solid #f1f5f9;display:flex;gap:8px;align-items:center;">
+    <button onclick="startVoice()" style="background:#f1f5f9;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎤</button>
+    <input id="chat-input" placeholder="Ask about energy or model…" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;padding:9px 13px;border-radius:999px;border:2px solid #e2e8f0;font-size:.875rem;font-family:inherit;outline:none;">
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>
+  </div>
+</div>
+<style>
+  #chat-fab{position:fixed;bottom:28px;right:28px;width:62px;height:62px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;cursor:pointer;box-shadow:0 8px 30px rgba(99,102,241,.55);z-index:9999;transition:transform .2s;}
+  #chat-fab:hover{transform:scale(1.1);}
+  .cc{background:#f1f5f9;border:none;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:500;cursor:pointer;font-family:inherit;color:#475569;}
+  .cc:hover{background:#eef2ff;color:#6366f1;}
+</style>
+
+<!-- FOOTER -->
+<footer class="page-footer">
+  <p>EnergyIQ &copy; 2025 — Building Energy Prediction Platform &nbsp;|&nbsp;
+    <a href="/">Predict</a> &nbsp;·&nbsp;
+    <a href="/upload">Upload Dataset</a>
+  </p>
+</footer>
+
+<!-- ===== DATA FROM FLASK ===== -->
+<script type="application/json" id="flask-data">
+{
+  "mae":     {{ mae     | default(0) | tojson }},
+  "rmse":    {{ rmse    | default(0) | tojson }},
+  "rmsle":   {{ rmsle   | default(0) | tojson }},
+  "r2":      {{ r2      | default(0) | tojson }},
+  "avgHeat": {{ avg_heating | default(0) | tojson }},
+  "avgCool": {{ avg_cooling | default(0) | tojson }},
+  "avgTotal":{{ avg_total   | default(0) | tojson }},
+  "heating": {{ heating_series | default([]) | tojson }},
+  "cooling": {{ cooling_series | default([]) | tojson }},
+  "total":   {{ total_series   | default([]) | tojson }}
+}
+</script>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const D = JSON.parse(document.getElementById("flask-data").textContent);
+const hasData = D.heating && D.heating.length > 0;
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function switchTab(name, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+}
+
+/* ============================================================
+   ANIMATED COUNTER
+   ============================================================ */
+function countUp(id, target, decimals = 3) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let cur = 0;
+  const step = target / 50;
+  const t = setInterval(() => {
+    cur += step;
+    if (cur >= target) { el.textContent = target.toFixed(decimals); clearInterval(t); return; }
+    el.textContent = cur.toFixed(decimals);
+  }, 18);
+}
+
+countUp("stat-mae",   D.mae,   3);
+countUp("stat-rmse",  D.rmse,  3);
+countUp("stat-rmsle", D.rmsle, 3);
+countUp("stat-r2",    D.r2,    3);
+countUp("avg-heat",   D.avgHeat,  2);
+countUp("avg-cool",   D.avgCool,  2);
+countUp("avg-total",  D.avgTotal, 2);
+
+/* ============================================================
+   CHART DEFAULTS
+   ============================================================ */
+Chart.defaults.font.family = "Inter, system-ui";
+Chart.defaults.color = "#64748b";
+
+const labels = hasData
+  ? D.heating.map((_, i) => "S" + (i + 1))
+  : ["No data"];
+
+/* ============================================================
+   METRIC BAR CHART
+   ============================================================ */
+new Chart(document.getElementById("metricChart"), {
+  type: "bar",
+  data: {
+    labels: ["MAE", "RMSE", "RMSLE", "R²"],
+    datasets: [{
+      label: "Value",
+      data: [D.mae, D.rmse, D.rmsle, D.r2],
+      backgroundColor: [
+        "rgba(99,102,241,.8)",
+        "rgba(249,115,22,.8)",
+        "rgba(59,130,246,.8)",
+        "rgba(34,197,94,.8)"
+      ],
+      borderRadius: 8,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => " " + ctx.parsed.y.toFixed(4) } }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: "rgba(0,0,0,.04)" } },
+      x: { grid: { display: false } }
+    },
+    animation: { duration: 900, easing: "easeOutQuart" }
+  }
+});
+
+/* ============================================================
+   TREND LINE CHART
+   ============================================================ */
+new Chart(document.getElementById("trendChart"), {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: "Heating",
+        data: hasData ? D.heating : [0],
+        borderColor: "#f97316",
+        backgroundColor: "rgba(249,115,22,.08)",
+        fill: true,
+        tension: .4,
+        pointRadius: 3,
+        pointHoverRadius: 6
+      },
+      {
+        label: "Cooling",
+        data: hasData ? D.cooling : [0],
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59,130,246,.08)",
+        fill: true,
+        tension: .4,
+        pointRadius: 3,
+        pointHoverRadius: 6
+      },
+      {
+        label: "Total",
+        data: hasData ? D.total : [0],
+        borderColor: "#22c55e",
+        backgroundColor: "rgba(34,197,94,.06)",
+        fill: true,
+        tension: .4,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        borderDash: [5, 3]
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { position: "top" },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} kWh` } }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: "rgba(0,0,0,.04)" }, ticks: { callback: v => v + " kWh" } },
+      x: { grid: { display: false } }
+    },
+    animation: { duration: 1000 }
+  }
+});
+
+/* ============================================================
+   DOUGHNUT CHART
+   ============================================================ */
+const totalHeat = hasData ? D.heating.reduce((a, b) => a + b, 0) : 1;
+const totalCool = hasData ? D.cooling.reduce((a, b) => a + b, 0) : 1;
+
+new Chart(document.getElementById("donutChart"), {
+  type: "doughnut",
+  data: {
+    labels: ["Heating", "Cooling"],
+    datasets: [{
+      data: [totalHeat, totalCool],
+      backgroundColor: ["rgba(249,115,22,.85)", "rgba(59,130,246,.85)"],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: "65%",
+    plugins: {
+      legend: { position: "bottom" },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toFixed(1)} kWh` } }
+    }
+  }
+});
+
+/* ============================================================
+   SCATTER CHART
+   ============================================================ */
+const scatterData = hasData
+  ? D.heating.map((h, i) => ({ x: h, y: D.cooling[i] }))
+  : [{ x: 0, y: 0 }];
+
+new Chart(document.getElementById("scatterChart"), {
+  type: "scatter",
+  data: {
+    datasets: [{
+      label: "Heating vs Cooling",
+      data: scatterData,
+      backgroundColor: "rgba(99,102,241,.55)",
+      pointRadius: 5,
+      pointHoverRadius: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` H: ${ctx.parsed.x.toFixed(1)}, C: ${ctx.parsed.y.toFixed(1)}` } }
+    },
+    scales: {
+      x: { title: { display: true, text: "Heating Load (kWh)" }, grid: { color: "rgba(0,0,0,.04)" } },
+      y: { title: { display: true, text: "Cooling Load (kWh)" }, grid: { color: "rgba(0,0,0,.04)" } }
+    }
+  }
+});
+
+/* ============================================================
+   FEATURE IMPORTANCE CHART
+   ============================================================ */
+const featureNames = [
+  "Rel. Compactness", "Overall Height", "Glazing Area",
+  "Surface Area", "Wall Area", "Roof Area", "Glazing Dist.", "Orientation"
+];
+const featureScores = [95, 90, 82, 75, 70, 62, 35, 12];
+
+new Chart(document.getElementById("featureChart"), {
+  type: "bar",
+  data: {
+    labels: featureNames,
+    datasets: [{
+      data: featureScores,
+      backgroundColor: featureScores.map((v, i) =>
+        `rgba(99,102,241,${0.4 + (i / featureNames.length) * 0.5})`
+      ),
+      borderRadius: 6,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: "y",
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" }, grid: { color: "rgba(0,0,0,.04)" } },
+      y: { grid: { display: false } }
+    },
+    animation: { duration: 900 }
+  }
+});
+
+/* ============================================================
+   RADAR CHART
+   ============================================================ */
+new Chart(document.getElementById("radarChart"), {
+  type: "radar",
+  data: {
+    labels: ["Compactness", "Height", "Glazing", "Surface", "Wall", "Roof", "Orientation"],
+    datasets: [{
+      label: "Importance",
+      data: [95, 90, 82, 75, 70, 62, 12],
+      backgroundColor: "rgba(99,102,241,.15)",
+      borderColor: "#6366f1",
+      pointBackgroundColor: "#6366f1",
+      pointRadius: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        ticks: { display: false },
+        grid: { color: "rgba(0,0,0,.06)" },
+        pointLabels: { font: { size: 11 } }
+      }
+    }
+  }
+});
+
+/* ============================================================
+   FEATURE BARS (Insights tab)
+   ============================================================ */
+const featBarsEl = document.getElementById("feat-bars");
+featureNames.forEach((name, i) => {
+  const pct = featureScores[i];
+  featBarsEl.innerHTML += `
+    <div class="feature-row">
+      <div class="feat-name">${name}</div>
+      <div class="feat-bar-wrap">
+        <div class="feat-bar-fill" style="width:0%" data-pct="${pct}"></div>
+      </div>
+      <div class="feat-pct">${pct}%</div>
+    </div>`;
+});
+
+setTimeout(() => {
+  document.querySelectorAll(".feat-bar-fill").forEach(el => {
+    el.style.width = el.dataset.pct + "%";
+  });
+}, 300);
+
+/* ============================================================
+   CHATBOT JS
+   ============================================================ */
+  function toggleChat(){
+    var w=document.getElementById("chat-window");
+    w.style.display=(w.style.display==="none"||w.style.display==="")?"flex":"none";
+  }
+  function quickAsk(t){document.getElementById("chat-input").value=t;sendChat();}
+  function sendChat(){
+    var input=document.getElementById("chat-input");
+    var msg=input.value.trim();
+    if(!msg)return;
+    var body=document.getElementById("chat-body");
+    body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:.875rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;align-self:flex-end;">'+msg+'</div>';
+    input.value="";
+    body.scrollTop=body.scrollHeight;
+    var tid="t"+Date.now();
+    body.innerHTML+='<div id="'+tid+'" style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#94a3b8;align-self:flex-start;font-style:italic;">⏳ Thinking…</div>';
+    body.scrollTop=body.scrollHeight;
+    fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">'+d.reply+'</div>';
+      body.scrollTop=body.scrollHeight;
+    })
+    .catch(function(){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">⚠️ Could not reach assistant.</div>';
+      body.scrollTop=body.scrollHeight;
+    });
+  }
+  function startVoice(){
+    if(!("webkitSpeechRecognition"in window)){alert("Voice not supported. Use Chrome.");return;}
+    var rec=new webkitSpeechRecognition();rec.lang="en-US";
+    rec.onresult=function(e){document.getElementById("chat-input").value=e.results[0][0].transcript;};
+    rec.start();
+  }
+</script>
+
+</body>
+</html>

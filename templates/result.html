@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediction Result — EnergyIQ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 60%, #f5f3ff 100%); }
+
+    .result-layout {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Gauge-style big number */
+    .gauge-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .gauge-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--slate-200);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .gauge-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+
+    .gauge-card .gc-stripe {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+    }
+
+    .gc-heat .gc-stripe  { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .gc-cool .gc-stripe  { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .gc-total .gc-stripe { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+    .gauge-card .gc-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+
+    .gauge-card .gc-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--slate-400);
+      margin-bottom: .5rem;
+    }
+
+    .gauge-card .gc-value {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: .3rem;
+    }
+
+    .gc-heat  .gc-value { color: #f97316; }
+    .gc-cool  .gc-value { color: #3b82f6; }
+    .gc-total .gc-value { color: #22c55e; }
+
+    .gauge-card .gc-unit {
+      font-size: .85rem;
+      color: var(--slate-400);
+    }
+
+    /* Progress bars */
+    .breakdown-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--slate-200);
+      margin-bottom: 1.5rem;
+    }
+
+    .breakdown-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-bottom: 1.25rem;
+    }
+
+    .breakdown-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .breakdown-row:last-child { margin-bottom: 0; }
+
+    .br-label {
+      width: 90px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      flex-shrink: 0;
+    }
+
+    .br-bar-wrap {
+      flex: 1;
+      background: var(--slate-100);
+      border-radius: var(--radius-full);
+      height: 10px;
+      overflow: hidden;
+    }
+
+    .br-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      transition: width 1s ease;
+    }
+
+    .br-heat-fill  { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .br-cool-fill  { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .br-total-fill { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+    .br-value {
+      width: 70px;
+      text-align: right;
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--slate-700);
+      flex-shrink: 0;
+    }
+
+    /* Chart + actions row */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .action-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .action-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-bottom: .25rem;
+    }
+
+    .interpretation-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .75rem;
+      background: var(--slate-50);
+      border-radius: var(--radius-md);
+      font-size: .85rem;
+      color: var(--slate-700);
+    }
+
+    .interpretation-item .ii-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 700px) {
+      .gauge-row { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">⚡</div>
+    EnergyIQ
+  </div>
+  <ul class="navbar-links">
+    <li><a href="/">Predict</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/upload">Upload Data</a></li>
+    <li><a href="/" class="nav-cta">⚡ New Prediction</a></li>
+  </ul>
+</nav>
+
+<main class="page-wrapper">
+  <div class="result-layout">
+
+    <!-- HERO -->
+    <div class="result-hero" style="margin-bottom:2rem;">
+      <div class="result-icon">🔮</div>
+      <h1>Prediction Complete</h1>
+      <p>Here are the estimated energy loads for your building configuration</p>
+    </div>
+
+    <!-- GAUGE CARDS -->
+    <div class="gauge-row">
+      <div class="gauge-card gc-heat">
+        <div class="gc-stripe"></div>
+        <div class="gc-icon">🔥</div>
+        <div class="gc-label">Heating Load</div>
+        <div class="gc-value" id="val-heat">0</div>
+        <div class="gc-unit">kWh/m²</div>
+      </div>
+      <div class="gauge-card gc-cool">
+        <div class="gc-stripe"></div>
+        <div class="gc-icon">❄️</div>
+        <div class="gc-label">Cooling Load</div>
+        <div class="gc-value" id="val-cool">0</div>
+        <div class="gc-unit">kWh/m²</div>
+      </div>
+      <div class="gauge-card gc-total">
+        <div class="gc-stripe"></div>
+        <div class="gc-icon">⚡</div>
+        <div class="gc-label">Total Energy</div>
+        <div class="gc-value" id="val-total">0</div>
+        <div class="gc-unit">kWh/m²</div>
+      </div>
+    </div>
+
+    <!-- BREAKDOWN BARS -->
+    <div class="breakdown-card">
+      <h3>📊 Energy Breakdown</h3>
+      <div class="breakdown-row">
+        <div class="br-label">🔥 Heating</div>
+        <div class="br-bar-wrap">
+          <div class="br-bar-fill br-heat-fill" id="bar-heat" style="width:0%"></div>
+        </div>
+        <div class="br-value" id="pct-heat">0%</div>
+      </div>
+      <div class="breakdown-row">
+        <div class="br-label">❄️ Cooling</div>
+        <div class="br-bar-wrap">
+          <div class="br-bar-fill br-cool-fill" id="bar-cool" style="width:0%"></div>
+        </div>
+        <div class="br-value" id="pct-cool">0%</div>
+      </div>
+      <div class="breakdown-row">
+        <div class="br-label">⚡ Total</div>
+        <div class="br-bar-wrap">
+          <div class="br-bar-fill br-total-fill" id="bar-total" style="width:100%"></div>
+        </div>
+        <div class="br-value" id="pct-total">100%</div>
+      </div>
+    </div>
+
+    <!-- CHART + INTERPRETATION -->
+    <div class="bottom-grid">
+      <div class="chart-card">
+        <div class="chart-title">📈 Visual Comparison</div>
+        <canvas id="resultChart" height="220"></canvas>
+      </div>
+
+      <div class="action-card">
+        <h3>💡 Interpretation</h3>
+        <div class="interpretation-item">
+          <div class="ii-dot" style="background:#f97316"></div>
+          <div>Heating load of <strong>{{ heating }} kWh/m²</strong> indicates the energy needed to maintain indoor warmth.</div>
+        </div>
+        <div class="interpretation-item">
+          <div class="ii-dot" style="background:#3b82f6"></div>
+          <div>Cooling load of <strong>{{ cooling }} kWh/m²</strong> reflects the energy required for air conditioning.</div>
+        </div>
+        <div class="interpretation-item">
+          <div class="ii-dot" style="background:#22c55e"></div>
+          <div>Total consumption of <strong>{{ total }} kWh/m²</strong> is the combined annual energy demand.</div>
+        </div>
+
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:.6rem;">
+          <a href="/" class="btn btn-primary">⚡ Predict Again</a>
+          <a href="/dashboard" class="btn btn-secondary">📊 View Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="page-footer">
+  <p>EnergyIQ &copy; 2025 — Building Energy Prediction Platform</p>
+</footer>
+
+<script>
+  const heating = {{ heating }};
+  const cooling = {{ cooling }};
+  const total   = {{ total }};
+
+  // Animated counter
+  function countUp(id, target, decimals = 2) {
+    const el = document.getElementById(id);
+    let start = 0;
+    const step = target / 50;
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { el.textContent = target.toFixed(decimals); clearInterval(timer); return; }
+      el.textContent = start.toFixed(decimals);
+    }, 20);
+  }
+
+  countUp("val-heat",  heating);
+  countUp("val-cool",  cooling);
+  countUp("val-total", total);
+
+  // Progress bars
+  setTimeout(() => {
+    const hPct = Math.round((heating / total) * 100);
+    const cPct = Math.round((cooling / total) * 100);
+    document.getElementById("bar-heat").style.width  = hPct + "%";
+    document.getElementById("bar-cool").style.width  = cPct + "%";
+    document.getElementById("pct-heat").textContent  = hPct + "%";
+    document.getElementById("pct-cool").textContent  = cPct + "%";
+  }, 200);
+
+  // Bar chart
+  new Chart(document.getElementById("resultChart"), {
+    type: "bar",
+    data: {
+      labels: ["Heating", "Cooling", "Total"],
+      datasets: [{
+        data: [heating, cooling, total],
+        backgroundColor: ["rgba(249,115,22,.85)", "rgba(59,130,246,.85)", "rgba(34,197,94,.85)"],
+        borderRadius: 10,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y.toFixed(2)} kWh/m²`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(0,0,0,.05)" },
+          ticks: { callback: v => v + " kWh" }
+        },
+        x: { grid: { display: false } }
+      },
+      animation: { duration: 1000, easing: "easeOutQuart" }
+    }
+  });
+</script>
+
+<!-- ===== CHATBOT ===== -->
+<button id="chat-fab" onclick="toggleChat()" title="AI Energy Assistant">🤖</button>
+<div id="chat-window" style="display:none;position:fixed;bottom:106px;right:28px;width:370px;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.22);flex-direction:column;overflow:hidden;z-index:9999;border:1px solid #e2e8f0;">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem;">
+      <span>⚡</span>
+      <div><div>Energy Assistant</div><div style="font-size:.72rem;opacity:.8;">Powered by Llama 3.1</div></div>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+  <div style="padding:10px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f1f5f9;">
+    <button class="cc" onclick="quickAsk('Explain the R² score')">Explain R²</button>
+    <button class="cc" onclick="quickAsk('Why is heating higher than cooling?')">Heating vs Cooling</button>
+    <button class="cc" onclick="quickAsk('How is the model performing?')">Model Health</button>
+    <button class="cc" onclick="quickAsk('What features matter most?')">Key Features</button>
+  </div>
+  <div id="chat-body" style="padding:14px;height:270px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+    <div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">
+      👋 Hi! I'm your Energy Analytics Assistant. Ask me anything about predictions, metrics, or energy efficiency.
+    </div>
+  </div>
+  <div style="padding:10px 12px;border-top:1px solid #f1f5f9;display:flex;gap:8px;align-items:center;">
+    <button onclick="startVoice()" style="background:#f1f5f9;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎤</button>
+    <input id="chat-input" placeholder="Ask about energy or model…" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;padding:9px 13px;border-radius:999px;border:2px solid #e2e8f0;font-size:.875rem;font-family:inherit;outline:none;">
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>
+  </div>
+</div>
+<style>
+  #chat-fab{position:fixed;bottom:28px;right:28px;width:62px;height:62px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;cursor:pointer;box-shadow:0 8px 30px rgba(99,102,241,.55);z-index:9999;transition:transform .2s;}
+  #chat-fab:hover{transform:scale(1.1);}
+  .cc{background:#f1f5f9;border:none;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:500;cursor:pointer;font-family:inherit;color:#475569;}
+  .cc:hover{background:#eef2ff;color:#6366f1;}
+</style>
+<script>
+  function toggleChat(){
+    var w=document.getElementById("chat-window");
+    w.style.display=(w.style.display==="none"||w.style.display==="")?"flex":"none";
+  }
+  function quickAsk(t){document.getElementById("chat-input").value=t;sendChat();}
+  function sendChat(){
+    var input=document.getElementById("chat-input");
+    var msg=input.value.trim();
+    if(!msg)return;
+    var body=document.getElementById("chat-body");
+    body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:.875rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;align-self:flex-end;">'+msg+'</div>';
+    input.value="";
+    body.scrollTop=body.scrollHeight;
+    var tid="t"+Date.now();
+    body.innerHTML+='<div id="'+tid+'" style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#94a3b8;align-self:flex-start;font-style:italic;">⏳ Thinking…</div>';
+    body.scrollTop=body.scrollHeight;
+    fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">'+d.reply+'</div>';
+      body.scrollTop=body.scrollHeight;
+    })
+    .catch(function(){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">⚠️ Could not reach assistant.</div>';
+      body.scrollTop=body.scrollHeight;
+    });
+  }
+  function startVoice(){
+    if(!("webkitSpeechRecognition"in window)){alert("Voice not supported. Use Chrome.");return;}
+    var rec=new webkitSpeechRecognition();rec.lang="en-US";
+    rec.onresult=function(e){document.getElementById("chat-input").value=e.results[0][0].transcript;};
+    rec.start();
+  }
+</script>
+
+</body>
+</html>

@@ -25,14 +25,18 @@ app = Flask(__name__)
 
 
 # ================= MONGODB =================
-client = MongoClient("mongodb://localhost:27017")
-
-
-db = client["energy_dashboard"]
-
-dataset_col = db["dataset_records"]
-stats_col = db["dataset_stats"]
-metrics_col = db["dataset_metrics"]
+try:
+    mongo_client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=2000)
+    mongo_client.server_info()  # force connection check
+    db = mongo_client["energy_dashboard"]
+    dataset_col = db["dataset_records"]
+    stats_col   = db["dataset_stats"]
+    metrics_col = db["dataset_metrics"]
+    print("✅ MongoDB connected")
+except Exception as _mongo_err:
+    print(f"⚠️  MongoDB not available ({_mongo_err}). Dashboard metrics will be empty.")
+    mongo_client = None
+    db = dataset_col = stats_col = metrics_col = None
 
 # ================= LOAD MODEL =================
 model = pickle.load(open("model.pkl", "rb"))
@@ -50,8 +54,8 @@ def ping():
 # ================= DASHBOARD =================
 @app.route("/dashboard")
 def dashboard():
-    metrics = metrics_col.find_one() or {}
-    stats = stats_col.find_one() or {}
+    metrics = (metrics_col.find_one() if metrics_col is not None else None) or {}
+    stats   = (stats_col.find_one()   if stats_col   is not None else None) or {}
 
     return render_template(
         "dashboard.html",
@@ -71,16 +75,18 @@ def dashboard():
         errors=stats.get("errors", []) or []
     )
 
-load_dotenv() 
+load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Groq client — only initialise if key is present
+_groq_key = os.getenv("GROQ_API_KEY")
+groq_client = Groq(api_key=_groq_key) if _groq_key else None
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_msg = request.json.get("message", "").strip()
 
-    metrics = metrics_col.find_one() or {}
-    stats = stats_col.find_one() or {}
+    metrics = (metrics_col.find_one() if metrics_col is not None else None) or {}
+    stats   = (stats_col.find_one()   if stats_col   is not None else None) or {}
 
     # --- Safe extraction ---
     mae = round(float(metrics.get("mae", 0) or 0), 4)
@@ -124,9 +130,11 @@ Your role:
 • Be concise and visual-friendly
 """
 
-    completion = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+    if not groq_client:
+        return jsonify({"reply": "⚠️ AI Assistant is not configured. Add GROQ_API_KEY to your .env file to enable it."})
 
+    completion = groq_client.chat.completions.create(
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
@@ -225,6 +233,9 @@ def evaluate():
 
 
     try:
+        if mongo_client is None:
+            raise Exception("MongoDB not connected")
+
         # Clear old DB data
         dataset_col.delete_many({})
         stats_col.delete_many({})
