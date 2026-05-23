@@ -26,7 +26,8 @@ app = Flask(__name__)
 
 # ================= MONGODB =================
 try:
-    mongo_client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=2000)
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     mongo_client.server_info()  # force connection check
     db = mongo_client["energy_dashboard"]
     dataset_col = db["dataset_records"]
