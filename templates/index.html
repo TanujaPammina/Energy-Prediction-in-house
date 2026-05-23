@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EnergyIQ — Building Energy Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    /* ---- INDEX-SPECIFIC ---- */
+    body { background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 50%, #f5f3ff 100%); }
+
+    .hero-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      padding: 3rem 0 2rem;
+    }
+
+    .hero-text .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: #eef2ff;
+      color: var(--indigo);
+      font-size: .78rem;
+      font-weight: 700;
+      padding: .4rem 1rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.25rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .hero-text h1 {
+      font-size: clamp(2.2rem, 4vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.12;
+      color: var(--slate-900);
+      margin-bottom: 1rem;
+    }
+
+    .hero-text h1 span {
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-text p {
+      color: var(--slate-600);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      max-width: 480px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--slate-200);
+    }
+
+    .hero-stat .hs-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--slate-900);
+    }
+
+    .hero-stat .hs-label {
+      font-size: .78rem;
+      color: var(--slate-400);
+      font-weight: 500;
+    }
+
+    /* ---- PREDICTION FORM CARD ---- */
+    .predict-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      padding: 2.25rem;
+      box-shadow: 0 30px 80px rgba(99,102,241,.18);
+      border: 1px solid rgba(99,102,241,.15);
+    }
+
+    .predict-card .card-top {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .predict-card .card-top .ct-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .predict-card .card-top h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+
+    .predict-card .card-top p {
+      font-size: .8rem;
+      color: var(--slate-400);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-grid .form-group label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-grid .form-group label .range-hint {
+      font-size: .7rem;
+      color: var(--slate-400);
+      font-weight: 400;
+    }
+
+    .form-submit-row {
+      margin-top: 1.25rem;
+    }
+
+    /* ---- FEATURES SECTION ---- */
+    .features-section {
+      margin-top: 5rem;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: .5rem;
+    }
+
+    .section-header p {
+      color: var(--slate-600);
+      font-size: .95rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(99,102,241,.3);
+    }
+
+    .feature-card .fc-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-bottom: .4rem;
+    }
+
+    .feature-card p {
+      font-size: .875rem;
+      color: var(--slate-600);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .hero-section { grid-template-columns: 1fr; gap: 2.5rem; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .hero-stats { gap: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">⚡</div>
+    EnergyIQ
+  </div>
+  <ul class="navbar-links">
+    <li><a href="/" class="active">Predict</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/upload">Upload Data</a></li>
+    <li><a href="/predict" class="nav-cta">⚡ Run Prediction</a></li>
+  </ul>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main class="page-wrapper">
+
+  <!-- HERO + FORM -->
+  <section class="hero-section">
+
+    <!-- LEFT: Hero Text -->
+    <div class="hero-text">
+      <div class="eyebrow">🏢 ML-Powered Analytics</div>
+      <h1>Predict Building <span>Energy Consumption</span> Instantly</h1>
+      <p>
+        Enter your building's physical parameters and get accurate heating &amp;
+        cooling load predictions powered by a trained Random Forest model.
+      </p>
+      <div class="hero-actions">
+        <a href="/dashboard" class="btn btn-secondary">📊 View Dashboard</a>
+        <a href="/upload" class="btn btn-outline">📂 Upload Dataset</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hs-value">R² 0.99</div>
+          <div class="hs-label">Model Accuracy</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hs-value">768</div>
+          <div class="hs-label">Training Samples</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hs-value">2</div>
+          <div class="hs-label">Prediction Targets</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Prediction Form -->
+    <div class="predict-card">
+      <div class="card-top">
+        <div class="ct-icon">🔮</div>
+        <div>
+          <h2>Building Parameters</h2>
+          <p>Fill in all 8 features to predict energy loads</p>
+        </div>
+      </div>
+
+      <form action="/predict" method="post" id="predictForm">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>
+              Relative Compactness
+              <span class="range-hint">0.62 – 0.98</span>
+            </label>
+            <input class="form-control" name="Relative_Compactness" type="number"
+              step="0.01" min="0.5" max="1" placeholder="e.g. 0.76" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Surface Area (m²)
+              <span class="range-hint">514 – 808</span>
+            </label>
+            <input class="form-control" name="Surface_Area" type="number"
+              step="0.5" placeholder="e.g. 661" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Wall Area (m²)
+              <span class="range-hint">245 – 416</span>
+            </label>
+            <input class="form-control" name="Wall_Area" type="number"
+              step="0.5" placeholder="e.g. 318" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Roof Area (m²)
+              <span class="range-hint">110 – 220</span>
+            </label>
+            <input class="form-control" name="Roof_Area" type="number"
+              step="0.5" placeholder="e.g. 147" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Overall Height (m)
+              <span class="range-hint">3.5 or 7</span>
+            </label>
+            <input class="form-control" name="Overall_Height" type="number"
+              step="0.5" placeholder="e.g. 7" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Orientation
+              <span class="range-hint">2 – 5</span>
+            </label>
+            <select class="form-control" name="Orientation" required>
+              <option value="" disabled selected>Select orientation</option>
+              <option value="2">2 — North</option>
+              <option value="3">3 — East</option>
+              <option value="4">4 — South</option>
+              <option value="5">5 — West</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Glazing Area
+              <span class="range-hint">0 – 0.4</span>
+            </label>
+            <input class="form-control" name="Glazing_Area" type="number"
+              step="0.1" min="0" max="0.4" placeholder="e.g. 0.25" required>
+          </div>
+
+          <div class="form-group">
+            <label>
+              Glazing Distribution
+              <span class="range-hint">0 – 5</span>
+            </label>
+            <select class="form-control" name="Glazing_Area_Distribution" required>
+              <option value="" disabled selected>Select distribution</option>
+              <option value="0">0 — Uniform</option>
+              <option value="1">1 — North</option>
+              <option value="2">2 — East</option>
+              <option value="3">3 — South</option>
+              <option value="4">4 — West</option>
+              <option value="5">5 — Mixed</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="form-submit-row">
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtn">
+            ⚡ Predict Energy Consumption
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features-section">
+    <div class="section-header">
+      <h2>Why EnergyIQ?</h2>
+      <p>A complete ML pipeline for building energy analytics</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="fc-icon">🤖</div>
+        <h3>Random Forest Model</h3>
+        <p>Trained on the UCI Energy Efficiency dataset with 200 estimators, achieving R² &gt; 0.99 on both heating and cooling loads.</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">📊</div>
+        <h3>Live Analytics Dashboard</h3>
+        <p>Upload any compatible CSV and instantly visualise model performance, energy trends, and feature importance charts.</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">🤖</div>
+        <h3>AI Energy Assistant</h3>
+        <p>Ask questions about your data in plain English. The built-in LLM assistant explains metrics, trends, and actionable insights.</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">⚡</div>
+        <h3>Instant Predictions</h3>
+        <p>Get heating and cooling load predictions in milliseconds. Results include a visual breakdown chart for quick interpretation.</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">🗄️</div>
+        <h3>MongoDB Persistence</h3>
+        <p>All evaluation results, metrics, and dataset statistics are stored in MongoDB so your dashboard always reflects the latest upload.</p>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">🎤</div>
+        <h3>Voice Input Support</h3>
+        <p>Use the microphone button in the AI assistant to ask questions hands-free using the Web Speech API.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="page-footer">
+  <p>EnergyIQ &copy; 2025 &mdash; Building Energy Prediction Platform &nbsp;|&nbsp;
+    <a href="/dashboard">Dashboard</a> &nbsp;·&nbsp;
+    <a href="/upload">Upload</a>
+  </p>
+</footer>
+
+<script>
+  // Loading state on form submit
+  document.getElementById("predictForm").addEventListener("submit", function() {
+    const btn = document.getElementById("submitBtn");
+    btn.innerHTML = '<span class="spinner"></span> Predicting…';
+    btn.disabled = true;
+  });
+</script>
+
+<!-- ===== CHATBOT ===== -->
+<button id="chat-fab" onclick="toggleChat()" title="AI Energy Assistant">🤖</button>
+<div id="chat-window" style="display:none;position:fixed;bottom:106px;right:28px;width:370px;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.22);flex-direction:column;overflow:hidden;z-index:9999;border:1px solid #e2e8f0;">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem;">
+      <span>⚡</span>
+      <div><div>Energy Assistant</div><div style="font-size:.72rem;opacity:.8;">Powered by Llama 3.1</div></div>
+    </div>
+    <button onclick="toggleChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+  <div style="padding:10px 12px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #f1f5f9;">
+    <button class="cc" onclick="quickAsk('Explain the R² score')">Explain R²</button>
+    <button class="cc" onclick="quickAsk('Why is heating higher than cooling?')">Heating vs Cooling</button>
+    <button class="cc" onclick="quickAsk('How is the model performing?')">Model Health</button>
+    <button class="cc" onclick="quickAsk('What features matter most?')">Key Features</button>
+  </div>
+  <div id="chat-body" style="padding:14px;height:270px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+    <div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">
+      👋 Hi! I'm your Energy Analytics Assistant. Ask me anything about predictions, metrics, or energy efficiency.
+    </div>
+  </div>
+  <div style="padding:10px 12px;border-top:1px solid #f1f5f9;display:flex;gap:8px;align-items:center;">
+    <button onclick="startVoice()" style="background:#f1f5f9;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎤</button>
+    <input id="chat-input" placeholder="Ask about energy or model…" onkeydown="if(event.key==='Enter')sendChat()" style="flex:1;padding:9px 13px;border-radius:999px;border:2px solid #e2e8f0;font-size:.875rem;font-family:inherit;outline:none;">
+    <button onclick="sendChat()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>
+  </div>
+</div>
+<style>
+  #chat-fab{position:fixed;bottom:28px;right:28px;width:62px;height:62px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;cursor:pointer;box-shadow:0 8px 30px rgba(99,102,241,.55);z-index:9999;transition:transform .2s;}
+  #chat-fab:hover{transform:scale(1.1);}
+  .cc{background:#f1f5f9;border:none;border-radius:999px;padding:5px 11px;font-size:.75rem;font-weight:500;cursor:pointer;font-family:inherit;color:#475569;}
+  .cc:hover{background:#eef2ff;color:#6366f1;}
+</style>
+<script>
+  function toggleChat(){
+    var w=document.getElementById("chat-window");
+    w.style.display=(w.style.display==="none"||w.style.display==="")?"flex":"none";
+  }
+  function quickAsk(t){document.getElementById("chat-input").value=t;sendChat();}
+  function sendChat(){
+    var input=document.getElementById("chat-input");
+    var msg=input.value.trim();
+    if(!msg)return;
+    var body=document.getElementById("chat-body");
+    body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:.875rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;align-self:flex-end;">'+msg+'</div>';
+    input.value="";
+    body.scrollTop=body.scrollHeight;
+    var tid="t"+Date.now();
+    body.innerHTML+='<div id="'+tid+'" style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#94a3b8;align-self:flex-start;font-style:italic;">⏳ Thinking…</div>';
+    body.scrollTop=body.scrollHeight;
+    fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">'+d.reply+'</div>';
+      body.scrollTop=body.scrollHeight;
+    })
+    .catch(function(){
+      var el=document.getElementById(tid);if(el)el.remove();
+      body.innerHTML+='<div style="max-width:85%;padding:9px 13px;border-radius:14px;font-size:.875rem;background:#f1f5f9;color:#1e293b;align-self:flex-start;">⚠️ Could not reach assistant.</div>';
+      body.scrollTop=body.scrollHeight;
+    });
+  }
+  function startVoice(){
+    if(!("webkitSpeechRecognition"in window)){alert("Voice not supported. Use Chrome.");return;}
+    var rec=new webkitSpeechRecognition();rec.lang="en-US";
+    rec.onresult=function(e){document.getElementById("chat-input").value=e.results[0][0].transcript;};
+    rec.start();
+  }
+</script>
+
+</body>
+</html>
